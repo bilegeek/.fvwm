@@ -1,0 +1,1240 @@
+ ###################
+# BILEGEEK'S NOTICE #
+ ###################
+
+# This Fvwm config is cobbled together from several places.
+# It started out life as the default config, located in /usr/share/fvwm/default-config/
+# Other sources included the Fvwm configs at https://www.datagubbe.se/
+# Menu buttons are from https://fvwmforums.org/wiki/Config/VectorButtons/ and the webapp located there.
+
+##################################
+#  ____________________________
+# (   _________________________)
+#  ) (__  _  _  _    _
+# (   __)( \/ )( \/\/ )/\/\
+#  ) (    \  /  \    //    \
+# (___)    \/    \/\/(_/\/\_) 2.6
+#
+#
+#  This is the default configuration file shipped with fvwm.
+#
+#  This config file is organized as follows:
+#
+#    1: Functions
+#    2: Styles
+#    3: Colorsets
+#    4: Menus
+#    5: Bindings
+#    6: Decor
+#    7: Modules
+#
+#################################
+
+# InfoStoreAdd can be used to store variable data internal to fvwm.
+# The variable can then be used in the configuration as $[infostore.name].
+#
+# You can also use environment variables but for data internal to fvwm
+# use InfoStore variables instead.
+#
+# The following is used in various menus and also sets the terminal
+# that FvwmConsole uses. Change this to your terminal of choice
+InfoStoreAdd terminal x-terminal-emulator
+
+###########
+# 1: Functions
+#
+# Fvwm can use custom functions for various tasks.
+# The syntax for defining a function named FunctionName is:
+#
+#   DestroyFunc FunctionName
+#   AddToFunc FunctionName
+#   + I [Action to do Immediately]
+#   + C [Action to do on a Mouse Click]
+#   + D [Action to do on a Mouse Double Click]
+#   + H [Action to do on a Mouse Hold]
+#   + M [Action to do on a Mouse Motion]
+###########
+
+# Start Function
+#
+# The start function is run right after fvwm is done reading
+# the config file. This function run after each restart
+# so using Test (Init) or Test (Restart) can further control
+# actions that are run during the first time run (Init) or
+# actions that are run after a restart.
+DestroyFunc StartFunction
+AddToFunc   StartFunction
+#+ I Test (Init, f $[FVWM_USERDIR]/.BGdefault) \
+#    Exec exec fvwm-root $[FVWM_USERDIR]/.BGdefault
++ I Test (Init) Module FvwmBanner
++ I Module FvwmButtons RightPanel
++ I Module FvwmButtons FvwmTaskBar
++ I Module FvwmEvent EventNewDesk
++ I Exec xrdb -merge $HOME/.fvwm/.Xresources
++ I Exec setxkbmap -option keypad:pointerkeys
++ I Exec xscreensaver -no-splash &
++ I Exec xsetroot -bg black
++ I Exec psensor &
++ I Exec copyq &
++ I Exec nm-applet &
+#+ I Exec wicd-client -t &
++ I Exec blueman-applet &
++ I Exec xset b off &
++ I Exec synclient TapButton1=1 TapButton2=3 TapButton3=2
++ I Exec synclient MinSpeed=1.5
++ I Exec synclient MaxSpeed=2.5
++ I Exec setxkbmap -option ctrl:swapcaps
+
+# Mouse Bindings Functions
+DestroyFunc RaiseMoveX
+AddToFunc RaiseMoveX
++ I Raise
++ M $0
++ D $1
+
+DestroyFunc RaiseMove
+AddToFunc RaiseMove
++ I Raise
++ M $0
+
+DestroyFunc MoveToCurrent
+AddToFunc MoveToCurrent
++ I ThisWindow MoveToPage
++ I ThisWindow MoveToDesk
+
+# Function: ViewManPage $0
+#
+# This function loads the man page $0 in an terminal
+# and is used with the help menu.
+DestroyFunc ViewManPage
+AddToFunc   ViewManPage
++ I Exec exec $[infostore.terminal] -g 80x40 \
+  -n "Manual Page - $0" -T "Manual Page - $0" -e man "$0"
+
+# Function: SetBG $0
+#
+# SetBG is used with the background menu to set the background
+# image and configure it to be loaded the next time fvwm is run.
+# Note, fvwm-root can't use .jpeg or resize images. Use something
+# like display, feh, etc.
+DestroyFunc SetBG
+AddToFunc   SetBG
++ I Test (f $[FVWM_USERDIR]/images/background/$0) \
+    Exec exec fvwm-root $[FVWM_USERDIR]/images/background/$0
++ I TestRc (Match) Exec exec ln -fs images/background/$0 \
+    $[FVWM_USERDIR]/.BGdefault
++ I TestRc (Match) Break
++ I Test (!f $[FVWM_DATADIR]/default-config/images/background/$0) Break
++ I Exec exec fvwm-root $[FVWM_DATADIR]/default-config/images/background/$0
++ I Exec exec ln -fs $[FVWM_DATADIR]/default-config/images/background/$0 \
+    $[FVWM_USERDIR]/.BGdefault
+
+
+# Function: IconManClick
+#
+# This function is run from FvwmIconMan when the button is clicked.
+DestroyFunc IconManClick
+AddToFunc   IconManClick
++ I ThisWindow (Raised, !Shaded, !Iconic, CurrentPage) Iconify
++ I TestRc (Match) Break
++ I ThisWindow WindowShade off
++ I ThisWindow Iconify off
++ I ThisWindow Raise
++ I ThisWindow (AcceptsFocus) FlipFocus
+
+# Function: ToggleTitle
+#
+# This function will toggle if fvwm shows the TitleBar.
+DestroyFunc ToggleTitle
+AddToFunc   ToggleTitle
++ I ThisWindow (State 1) WindowStyle Title
++ I TestRc (Match) State 1 False
++ I TestRc (Match) Break
++ I WindowStyle !Title
++ I State 1 True
+
+# Function: ChangeDesk
+#
+# This function is called by FvwmEvent every time the Desk is changed.
+DestroyFunc ChangeDesk
+AddToFunc   ChangeDesk
++ I SendToModule FvwmButtons ChangeButton desk0 Colorset 10
++ I SendToModule FvwmButtons ChangeButton desk1 Colorset 10
++ I SendToModule FvwmButtons ChangeButton desk2 Colorset 10
++ I SendToModule FvwmButtons ChangeButton desk3 Colorset 10
++ I SendToModule FvwmButtons ChangeButton desk$0 Colorset 11
+
+
+#############
+# 2: Styles #
+#############
+
+# Desktops and Pages
+#
+# Fvwm has both Virtual Desktops and Pages. Each Desktop is built from
+# a grid of Pages. The following sets the name of four Desktops and then
+# divides each Desktop into a 4x4 grid of Pages that are positioned as
+#
+#   +---+---+---+---+
+#   |   |   |   |   |
+#   +---+---+---+---+
+#   |   |   |   |   |
+#   +---+---+---+---+
+#   |   |   |   |   |
+#   +---+---+---+---+
+#   |   |   |   |   |
+#   +---+---+---+---+
+#
+DesktopName 0 Main
+DesktopName 1 Desk1
+DesktopName 2 Desk2
+DesktopName 3 Desk3
+DesktopSize 4x5
+
+# EdgeScroll will move the view port between the Pages when the mouse
+# moves to the edge of the screen. This set the amount of distance to
+# scroll at 100% (full page) and the EdgeResistance which is a timer
+# for how long the mouse as at the edge before it scrolls.
+#
+# Set EdgeScroll 0 0 and/or EdgeResistance -1 to disable.
+EdgeScroll 100 100
+EdgeResistance 450
+EdgeThickness 1
+Style * EdgeMoveDelay 350, EdgeMoveResistance 350
+
+Style "*" IconBox 5 5 90 -0, IconGrid 1 1, IconFill Left Top
+Style * IconSize 90 70 -1 -1
+Style * IconBackgroundColorset 1
+Style * IconBackgroundRelief 2
+Style * IconBackgroundPadding 2
+Style * DecorateTransient
+
+ImagePath $HOME/.fvwm/icons:+
+
+WindowFont "xft:Serif:size=10"
+IconFont "xft:Monospace::size=9:antialias=True"
+MenuStyle * Font "xft:Monospace::size=9:antialias=True"
+MenuStyle * PopupImmediately, PopdownImmediately, PopupOffset 0 100
+# Comment out HighlightBack to get a simple 3D bevel for active menu items.
+MenuStyle * HilightBack DarkSlateBlue, ActiveFore White, TrianglesUseFore, TrianglesSolid
+
+# Decor Styles
+Style * BorderWidth 4, HandleWidth 4
+Style * Colorset 1, HilightColorset 2
+
+# Transient Windows (such as open file windows)
+Style * DecorateTransient, StackTransientParent
+Style * !FPGrabFocusTransient, FPReleaseFocusTransient
+
+#HilightColor Black #C06077
+#Style "*" Color Black #60A0C0
+
+Style "*" SloppyFocus, MouseFocusClickRaises
+Style * SnapAttraction 10 Screen
+MoveThreshold 3
+ClickTime 250
+OpaqueMoveSize -1
+
+Emulate Mwm
+Style *   MwmDecor
+Style *	 MwmBorder
+Style *   MwmButtons
+Style *   MwmFunctions
+
+BugOpts FlickeringMoveWorkaround True
+
+AddToDecor Redmond98Decor
++ TitleStyle AllInactive Solid grey51
++ TitleStyle Active      HGradient 128 Blue4 DeepSkyBlue
++ ButtonStyle All Simple -- UseTitleStyle
++ AddButtonStyle All   AllInactive Solid grey51
++ AddButtonStyle Left  AllActive   Solid Blue4
++ AddButtonStyle Right AllActive   Solid DeepSkyBlue
++ BorderStyle Simple -- HiddenHandles NoInset Raised
++ TitleStyle      LeftJustified
++ TitleStyle      -- Flat
++ ButtonStyle     All -- Flat
++ AddButtonStyle 1 MiniIcon
++ AddButtonStyle 2 ActiveUp   Pixmap redmond98/win-window-close.png
++ AddButtonStyle 2 ActiveDown Pixmap redmond98/win-window-close-pressed.png
++ AddButtonStyle 2 Inactive   Pixmap redmond98/win-window-close.png
++ AddButtonStyle 4 ActiveUp   Pixmap redmond98/win-window-maximize.png
++ AddButtonStyle 4 ActiveDown Pixmap redmond98/win-window-maximize-pressed.png
++ AddButtonStyle 4 Inactive   Pixmap redmond98/win-window-maximize.png
++ AddButtonStyle 6 ActiveUp   Pixmap redmond98/win-window-iconify.png -- Right flat
++ AddButtonStyle 6 ActiveDown Pixmap redmond98/win-window-iconify-pressed.png -- Right flat
++ AddButtonStyle 6 Inactive   Pixmap redmond98/win-window-iconify.png -- Right flat
++ AddButtonStyle 4 ToggledActiveUp   Pixmap redmond98/win-window-restore.png
++ AddButtonStyle 4 ToggledActiveDown Pixmap redmond98/win-window-restore-pressed.png
++ AddButtonStyle 4 ToggledInactive   Pixmap redmond98/win-window-restore.png
++ ButtonStyle All - Clear
++ ButtonStyle 1 - MwmDecorMenu
++ ButtonStyle 6 - MwmDecorMin
++ ButtonStyle 4 - MwmDecorMax
++ TitleStyle Height 20
+
+Style * Colorset 1, HilightColorset 2, \
+        BorderColorset 3, HilightBorderColorset 4, \
+        BorderWidth 5, HandleWidth 5, \
+        FvwmBorder, FirmBorder, \
+        MWMButtons, UseDecor Redmond98Decor
+
+DefaultFont "xft:Sans:Bold:size=8:antialias=True"
+
+# Window Placement
+Style "*" DumbPlacement
+
+# Ignore Numlock and other modifiers for bindings
+# See http://fvwm.org/documentation/faq/#why-do-numlock-capslock-and-scrolllock-interfere-with-clicktofocus-andor-my-mouse-bindings
+IgnoreModifiers L25
+
+
+
+# Disable Icons from appearing on desktop.
+# Comment this out or use Style * Icon to get the icons back.
+Style * !Icon
+
+# Window Specific Styles
+Style 9term NoTitle, NoBorder, NoHandles, TitleWidth 0, BorderWidth 0, HandleWidth 0
+Style sam NoTitle, NoBorder, NoHandles, TitleWidth 0, BorderWidth 0, HandleWidth 0
+Style acme NoTitle, NoBorder, NoHandles, TitleWidth 0, BorderWidth 0, HandleWidth 0
+#Style google-chrome NoTitle, NoBorder, NoHandles, TitleWidth 0, BorderWidth 0, HandleWidth 0
+#Style chromium NoTitle, NoBorder, NoHandles, TitleWidth 0, BorderWidth 0, HandleWidth 0
+Style midori NoTitle, NoBorder, NoHandles, TitleWidth 0, BorderWidth 0, HandleWidth 0
+Style RightPanel !Title, !Borders, !Handles, Sticky, \
+                 WindowListSkip, NeverFocus
+Style ConfirmQuit !Title, PositionPlacement Center, WindowListSkip, Layer 6
+Style FvwmIdent WindowListSkip
+
+#Style  Icon iconz/.png, NoActiveIconOverride, MiniIcon iconz/.png
+Style xcalc Icon iconz/xcalc.png, NoActiveIconOverride, MiniIcon iconz/xcalc.png
+Style tilem2 Icon iconz/tilem.png, NoActiveIconOverride, MiniIcon iconz/tilem.png
+Style xclock Icon iconz/xclock.png, NoActiveIconOverride, MiniIcon iconz/xclock.png
+Style sunclock Icon iconz/sunclock.png, NoActiveIconOverride, MiniIcon iconz/sunclock.png
+
+Style caja Icon iconz/caja.png, NoActiveIconOverride, MiniIcon iconz/caja.png
+Style catfish Icon iconz/catfish.png, NoActiveIconOverride, MiniIcon iconz/catfish.png
+Style xarchiver Icon iconz/xarchiver.png, NoActiveIconOverride, MiniIcon iconz/xarchiver.png
+Style brasero Icon iconz/brasero.png, NoActiveIconOverride, MiniIcon iconz/brasero.png
+Style easytag Icon iconz/easytag.png, NoActiveIconOverride, MiniIcon iconz/easytag.png
+Style ripperx Icon iconz/ripperx.png, NoActiveIconOverride, MiniIcon iconz/ripperx.png
+Style asunder Icon iconz/asunder.png, NoActiveIconOverride, MiniIcon iconz/asunder.png
+Style gtkhash Icon iconz/gtkhash.png, NoActiveIconOverride, MiniIcon iconz/gtkhash.png
+Style xclock Icon iconz/xclock.png, NoActiveIconOverride, MiniIcon iconz/xclock.png
+
+Style xterm Icon iconz/xterm.png, NoActiveIconOverride, MiniIcon iconz/xterm.png
+
+Style nomacs Icon iconz/nomacs.png, NoActiveIconOverride, MiniIcon iconz/nomacs.png
+Style quodlibet Icon iconz/quodlibet.png, NoActiveIconOverride, MiniIcon iconz/quodlibet.png
+Style mpv Icon iconz/mpv.png, NoActiveIconOverride, MiniIcon iconz/mpv.png
+Style vlc Icon iconz/vlc.png, NoActiveIconOverride, MiniIcon iconz/vlc.png
+
+#######
+# 3: Colorsets
+#
+# Colorsets can be used to configure the color of the various
+# parts of fvwm such as window decor, menus, modules, etc.
+#
+# Colorset Convention
+#
+#   0 - Default
+#   1 - Inactive Windows
+#   2 - Active Window
+#   3 - Inactive Windows Borders
+#   4 - Active Windows Borders
+#   5 - Menu - Inactive Item
+#   6 - Menu - Active Item
+#   7 - Menu - Grayed Item
+#   8 - Menu - Title
+#   9 - Reserved
+#  10+ Modules
+#      10 - Module Default
+#      11 - Module Hilight
+#      12 - Module ActiveButton (Mouse Hover)
+#      13 - FvwmPager Active Page
+#      14 - FvwmIconMan Iconified Button
+###########
+# Color scheme
+CleanupColorsets
+DefaultColorset 0
+# Solaris-type color set
+# ColorSet 0 fg \#000000, bg \#aeb2c3, hi \#dcdee5, sh \#5d6069
+# ColorSet 1 fg \#000000, bg \#aeb2c3, hi \#dcdee5, sh \#5d6069
+# ColorSet 2 fg \#ffffff, bg \#b24d7a, hi \#dcadc2, sh \#57253b
+# ColorSet 3 fg \#000000, bg \#aeb2c3, hi \#dcdee5, sh \#5d6069
+Colorset 0 fg white, bg grey51
+Colorset 1 fg white, bg grey51
+Colorset 2 fg white, bg Blue3, hi #40B0F0
+Colorset 3 fg white, bg #c3c3c3
+Colorset 4 fg white, bg #c3c3c3
+# Colorset 0  fg #ffffff, bg #003c3c, hi, sh, Plain, NoShape
+# Colorset 1  fg #000000, bg #8f9f8f, hi, sh, Plain, NoShape
+# Colorset 2  fg #ffffff, bg #003c3c, hi, sh, Plain, NoShape
+# Colorset 3  fg black, bg #4d4d4d, hi #676767, sh #303030, Plain, NoShape
+# Colorset 4  fg black, bg #2d2d2d, hi #474747, sh #101010, Plain, NoShape
+Colorset 5  fg #000000, bg #ffffff, hi, sh, Plain, NoShape
+Colorset 6  fg #ffffff, bg #2d2d2d, hi, sh, Plain, NoShape
+Colorset 7  fg grey30, bg #ffffff, hi, sh, Plain, NoShape
+Colorset 8  fg #ffffff, bg #003c3c, hi, sh, Plain, NoShape
+Colorset 10 fg #ffffff, bg #003c3c, hi #aaaaaa, sh #999999, Plain, NoShape
+Colorset 11 fg #ffffff, bg #1a6e99, hi #ffffff, sh #ffffff, Plain, NoShape
+Colorset 12 fg #2d2d2d, bg #ffffff, hi, sh, Plain, NoShape
+Colorset 13 fg #ffffff, bg #006c6c, hi, sh, Plain, NoShape
+Colorset 14 fg #555555, bg #003c3c, hi #aaaaaa, sh #999999, Plain, NoShape
+
+#######
+# 4: Menus
+###########
+#MenuStyle * MenuColorset 5, ActiveColorset 6, GreyedColorset 7, TitleColorset 8
+MenuStyle * Hilight3DOff, HilightBack, HilightTitleBack, SeparatorsLong
+MenuStyle * TrianglesSolid, TrianglesUseFore
+MenuStyle * ItemFormat "%|%3.1i%5.3l%5.3>%|"
+MenuStyle * Font "xft:Monospace:Bold:size=9:antialias=True"
+
+AddToMenu MiscMenu
+Test (x xload) + "Xload" Exec exec xload &
+Test (x xcalc) + "Xcalc%iconz/xcalc.png%" Exec exec xcalc &
+Test (x x48) + "x48" Exec exec x48 &
+Test (x free42bin) + "Free42 Binary" Exec exec free42bin &
+Test (x free42dec) + "Free42 Decimal" Exec exec free42dec &
+Test (x tilem2) + "TilEm%iconz/tilem.png%" Exec exec tilem2 &
+Test (x tiemu) + "TiEmu" Exec exec tiemu &
+Test (x xclock) + "Xclock%iconz/xclock-analog.png%" Exec exec xclock &
+Test (x sunclock) + "Sunclock%iconz/sunclock.png%" Exec exec sunclock &
+Test (x xcal) + "Xcal" Exec exec xcal &
+Test (x plan) + "Plan" Exec exec plan &
+Test (x osmo) + "Osmo" Exec exec osmo &
+Test (x xtide) + "Xtide" Exec exec xtide &
+
+AddToMenu FilesMenu
+Test (x mc) + "Midnight Commander%iconz/midnight-commander.png%" Exec exec xterm -e mc &
+Test (x worker) + "Worker" Exec exec worker &
+Test (x xfe) + "Xfe" Exec exec xfe &
+Test (x thunar) + "Thunar" Exec exec thunar &
+Test (x dolphin) + "Dolphin" Exec exec dolphin &
+Test (x caja) + "Caja%iconz/caja.png%" Exec exec caja &
+Test (x nautilus) + "Nautilus" Exec exec nautilus &
+Test (x mlocate) + "mlocate" Exec exec mlocate &
+Test (x catfish) + "Catfish%iconz/catfish.png%" Exec exec catfish &
+Test (x xarchiver) + "XArchiver%iconz/xarchiver.png%" Exec exec xarchiver &
+Test (x brasero) + "Brasero%iconz/brasero.png%" Exec exec brasero &
+Test (x easytag) + "EasyTAG%iconz/easytag.png%" Exec exec easytag &
+Test (x ripperx) + "RipperX%iconz/ripperx.png%" Exec exec ripperx &
+Test (x asunder) + "Asunder%iconz/asunder.png%" Exec exec asunder &
+Test (x gtkhash) + "GtkHash%iconz/gtkhash.png%" Exec exec gtkhash &
+
+AddToMenu TerminalsMenu
+Test (x xterm) + "XTerm%iconz/xterm.png%" Exec exec xterm &
+Test (x xterm) + "XTerm (132x25)%iconz/xterm.png%" Exec exec xterm -geometry 132x25 &
+Test (x xterm) + "XTerm (SPARC)%iconz/xterm.png%" Exec exec xterm -fa 'gallant12x22' -fs 12 -bg linen -fg black -cm -bc -leftbar -sb &
+Test (x xterm) + "VT52%iconz/xterm.png%" Exec exec xterm -ti vt52 -tn vt52 -bg black -fg gold1 ksh &
+Test (x xterm) + "VT100%iconz/xterm.png%" Exec exec xterm -ti vt100 -tn vt100 -bg black -fg gold1 &
+Test (x xterm) + "Tek4014%iconz/xterm.png%" Exec exec xterm -t -bg black -fg green ksh &
+Test (x urxvt) + "Urxvt" Exec exec urxvt &
+Test (x konsole) + "Konsole" Exec exec konsole &
+Test (x gnome-terminal) + "GNOME Terminal" Exec exec gnome-terminal &
+Test (x 9) + "9term%iconz/pjw.png%" Exec exec 9 9term rc &
+
+AddToMenu fvwmMenu
++ "FvwmConsole%iconz/fvwm-console.png%" Module FvwmConsole -terminal $[infostore.terminal]
++ "Man Pages" Popup MenuFvwmManPages
++ "Wallpapers" Popup BGMenu
+
+AddToMenu UtilitiesMenu
++ "Terminals" Popup TerminalsMenu
++ "FVWM%iconz/fvwm.png%" Popup fvwmMenu
+Test (x screenfetch) + "Screenfetch" Exec exec xterm -e "screenfetch;read" &
+Test (x htop) + "Htop%iconz/htop.png%" Exec exec xterm -e htop &
+Test (x xconsole) + "Xconsole" Exec exec xconsole &
+Test (x xev) + "Xev" Exec exec xev &
+Test (x xfontsel) + "Xfontsel" Exec exec xfontsel &
+Test (x xcolorsel) + "Xcolorsel" Exec exec xcolorsel &
+Test (x xclipboard) + "Xclipboard" Exec exec xclipboard &
+Test (x xeyes) + "Xeyes%iconz/xeyes.png%" Exec exec xeyes &
++ "" Nop
+Test (x xman) + "Xman%iconz/xman.png%" Exec exec xman -bothshown -notopbox &
+Test (x xchm) + "Xchm%iconz/xchm.png%" Exec exec xchm &
++ "" Nop
+Test (x synaptic) + "Synaptic" Exec exec synaptic &
+Test (x octopkg) + "OctoPkg" Exec octopkg &
++ "" Nop
+Test (x arandr) + "ARandR%iconz/display.png%" Exec exec arandr &
+Test (x nvidia-settings) + "Nvidia Settings" Exec exec nvidia-settings &
+Test (x gtk-theme-switch2) + "Gtk+ Theme Switch" Exec exec gtk-theme-switch2 &
+Test (x gtk-chtheme) + "GTK Change Theme" Exec exec gtk-chtheme &
+Test (x qtconfig-qt4) + "Qt4 Configuration%iconz/qt4-logo.png%" Exec exec qtconfig-qt4 &
+Test (x qt5ct) + "Qt5ct%iconz/qt5logo.png%" Exec exec qt5ct &
+Test (x xscreensaver-demo) + "XScreensaver%iconz/xscreensaver.png%" Exec exec xscreensaver-demo &
+Test (x alsamixer) + "Alsamixer%iconz/sound.png%" Exec exec xterm -e alsamixer &
+Test (x pavucontrol) + "PulseAudio Control%iconz/multimedia-volume-control.png%" Exec exec pavucontrol &
+Test (x system-config-printer) + "CUPS Print Manager%iconz/printer.png%" Exec exec system-config-printer &
+Test (x clamtk) + "ClamTk" Exec exec clamtk &
+
+AddToMenu AccessibilityMenu
+Test (x xzoom) + "Xzoom" Exec exec xzoom &
+Test (x xvkbd) + "Xvkbd" Exec exec xvkbd &
+
+AddToMenu DevelopmentMenu
+Test (x xedit) + "Xedit" Exec exec xedit &
+Test (x nedit) + "NEdit%iconz/nedit.png%" Exec exec nedit &
+Test (x mousepad) + "Mousepad" Exec exec mousepad &
+Test (x kate) + "Kate" Exec exec kate &
+Test (x gedit) + "gedit" Exec exec gedit &
+Test (x wily) + "Wily" Exec exec wily &
+Test (x 9) + "Sam%iconz/spaceglenda.png%" Exec exec 9 sam &
+Test (x 9) + "Acme%iconz/spaceglenda.png%" Exec exec 9 acme -f /usr/local/plan9/font/fixed/unicode.9x15B.font &
+Test (x nvi) + "Vi" Exec exec xterm -e nvi &
+Test (x vim) + "Vim%iconz/gvim.png%" Exec exec xterm -e vim &
+Test (x gvim) + "Gvim%iconz/gvim.png%" Exec exec gvim &
+Test (x emacs) + "Emacs%iconz/emacs.png%" Exec exec emacs &
+Test (x xemacs) + "XEmacs%iconz/xemacs.png%" Exec exec xemacs &
++ "" Nop
+Test (x ddd) + "ddd" Exec exec ddd &
+Test (x wxHexEditor) + "wxHexEditor%iconz/wxhexeditor.png%" Exec exec wxHexEditor &
+Test (x mgdiff) + "mgdiff" Exec exec mgdiff &
++ "" Nop
+Test (x codeblocks) + "Code::Blocks" Exec exec codeblocks &
+Test (x fp) + "FP IDE" Exec exec xterm -e fp &
+Test (x lazarus-ide) + "Lazarus" Exec exec lazarus-ide &
+Test (x gnat-gps) + "GNAT Programming Studio" Exec exec gnat-gps &
+Test (x octave) + "GNU Octave" Exec exec octave --gui &
+Test (x scilab) + "GNU Scilab" Exec exec scilab &
+
+AddToMenu EngineeringMenu
+Test (x freecad) + "FreeCAD" Exec exec freecad &
+Test (x ngspice) + "NgSpice" Exec exec ngspice &
+Test (x easyspice) + "Easyspice" Exec exec easyspice &
+Test (x kicad) + "KiCAD" Exec exec kicad &
+
+AddToMenu ScienceMenu
+Test (x afni) + "AFNI" Exec exec afni &
+
+AddToMenu InstitutionalMenu
+Test (x gnucash) + "Gnucash" Exec exec gnucash &
+Test (x QtBitcoinTrader) + "QtBitcoinTrader" Exec exec QtBitcoinTrader &
+
+AddToMenu DocumentsMenu
+Test (x xmgrace) + "Xmgrace%iconz/grace.png%" Exec exec xmgrace &
+Test (x xpdf) + "Xpdf%iconz/xpdf.png%" Exec exec xpdf &
+Test (x atril) + "Atril%iconz/atril.png%" Exec exec atril &
+Test (x libreoffice) + "LibreOffice%iconz/libreoffice-main.png%" Popup LibreOfficeMenu
+Test (x scribus) + "Scribus" Exec exec scribus &
+
+AddToMenu LibreOfficeMenu
++ "Writer%iconz/libreoffice-writer.png%" Exec exec libreoffice --writer &
++ "Calc%iconz/libreoffice-calc.png%" Exec exec libreoffice --calc &
++ "Impress%iconz/libreoffice-impress.png%" Exec exec libreoffice --impress &
++ "Draw%iconz/libreoffice-draw.png%" Exec exec libreoffice --draw &
++ "Base%iconz/libreoffice-base.png%" Exec exec libreoffice --base &
++ "Math%iconz/libreoffice-math.png%" Exec exec libreoffice --math &
+
+AddToMenu MediaEditMenu
+Test (x inkscape) + "Inkscape%iconz/inkscape.png%" Exec exec inkscape &
+Test (x krita) + "Krita" Exec exec krita &
+Test (x grafx2) + "Grafx2%iconz/grafx2.png%" Exec exec grafx2 &
+Test (x gimp) + "GIMP%iconz/gimp.png%" Exec exec gimp &
+Test (x blender) + "Blender%iconz/blender.png%" Exec exec blender &
+Test (x openshot-qt) + "Openshot" Exec exec openshot-qt &
+Test (x audacity) + "Audacity%iconz/audacity.png%" Exec exec audacity &
+Test (x musescore) + "Musescore" Exec exec musescore &
+Test (x handbrake) + "Handbrake%iconz/handbrake.png%" Exec exec handbrake &
+
+AddToMenu MediaMenu
+Test (x xv) + "Xv" Exec exec xv &
+Test (x feh) + "Feh" Exec exec feh &
+Test (x nomacs) + "Nomacs%iconz/nomacs.png%" Exec exec nomacs &
+Test (x xnviewmp) + "XNViewMP" Exec exec xnviewmp &
+Test (x mocp) + "MOC" Exec exec xterm -e mocp &
+Test (x audacious) + "Audacious" Exec exec audacious &
+Test (x quodlibet) + "Quod Libet%iconz/quodlibet.png%" Exec exec quodlibet &
+Test (x rhythmbox) + "RhythmBox" Exec exec rhythmbox &
+Test (x mpv) + "Mpv%iconz/mpv.png%" Exec exec mpv &
+Test (x vlc) + "VLC%iconz/vlc.png%" Exec exec vlc &
+Test (x kaffeine) + "Kaffeine" Exec exec kaffeine &
+
+AddToMenu NetworkMenu
+Test (x xisp) + "X-ISP" Exec exec xisp &
+Test (x wifimgr) + "wifimgr" Exec exec wifimgr &
+Test (x wicd-gtk) + "Wicd-Gtk" Exec exec wicd-gtk &
+Test (x openvpn-admin) + "OpenVPN-Admin" Exec exec openvpn-admin &
+Test (x blueman-manager) + "Blueman%iconz/blueman.png%" Exec exec blueman-manager &
++ "" Nop
+Test (x xsane) + "XSane" Exec exec xsane &
+Test (x tkfax) + "TkFax" Exec exec tkfax &
++ "" Nop
+Test (x wireshark) + "Wireshark%iconz/wireshark.png%" Exec exec wireshark &
++ "" Nop
+Test (x barrier) + "Barrier%iconz/barrier.png%" Exec exec barrier &
+Test (x x3270) + "x3270%iconz/x3270.png%" Exec exec x3270 &
+Test (x minicom) + "Minicom" Exec exec xterm -e minicom &
+Test (x syncterm) + "SyncTerm%iconz/syncterm.png%" Exec exec syncterm &
+Test (x drawterm) + "DrawTerm" Exec exec drawterm &
+Test (x putty) + "PuTTY%iconz/putty.png%" Exec exec putty &
+Test (x xpra) + "Xpra%iconz/xpra.png%" Exec exec xpra &
+Test (x xtigervncviewer) + "TigerVNC%iconz/tigervnc.png%" Exec exec xtigervncviewer &
+Test (x remmina) + "Remmina" Exec exec remmina &
+
+AddToMenu InternetBrowsersMenu
+Test (x lynx) + "Lynx" Exec exec xterm -geometry 132x50 -e lynx -noreferer &
+Test (x w3m) + "W3M%iconz/w3m.png%" Exec exec xterm -geometry 132x50 -e w3m -B -num -title=TERM https://www.google.com/ &
+Test (x links2) + "Links2" Exec exec links2 -g &
+Test (x dillo) + "Dillo%iconz/dillo.png%" Exec exec dillo &
+Test (x netsurf) + "Netsurf%iconz/netsurf.png%" Exec exec netsurf &
+Test (x midori) + "Midori%iconz/midori.png%" Exec exec midori &
+Test (x qutebrowser) + "QuteBrowser" Exec exec qutebrowser &
+Test (x next) + "Next" Exec exec next &
+Test (x palemoon) + "Pale Moon" Exec exec palemoon &
+Test (x waterfox) + "Waterfox" Exec exec waterfox &
+Test (x firefox-esr) + "Firefox ESR" Exec exec firefox-esr &
+Test (x firefox-dev) + "Firefox Developer Edition%iconz/firefox-developer.png%" Exec exec firefox-dev &
+Test (x chromium) + "Chromium%iconz/chromium.png%" Exec exec chromium &
+Test (x chromium) + "Chromium (local webdev)%iconz/chromium.png%" Exec exec chromium --allow-file-access-from-files &
+Test (x iridium) + "Iridium" Exec exec iridium &
+Test (x google-chrome) + "Chrome%iconz/google-chrome.png%" Exec exec google-chrome &
++ "Tor Browser%iconz/tor-browser.png%" Exec exec sh -c '"/home/bg/Programs/tor-browser_en-US/Browser/start-tor-browser" --detach || ([ !  -x "/home/bg/Programs/tor-browser_en-US/Browser/start-tor-browser" ] && "$(dirname "$*")"/Browser/start-tor-browser --detach)' dummy %k
+Test (x opera) + "Opera" Exec exec opera &
+
+AddToMenu InternetComboMenu
+Test (x seamonkey) + "Seamonkey%iconz/seamonkey.png%" Exec exec seamonkey &
+Test (x thunderbird) + "ThunderBird%iconz/thunderbird.png%" Exec exec thunderbird &
+
+AddToMenu InternetFeedsMenu
+Test (x newsboat) + "Newsboat" Exec exec xterm -e newsboat &
+Test (x liferea) + "Liferea%iconz/liferea.png%" Exec exec liferea &
+Test (x quiterss) + "QuiteRSS%iconz/quiterss.png%" Exec exec quiterss &
+Test (x gpodder) + "Gpodder" Exec exec gpodder &
+
+AddToMenu InternetMailMenu
+Test (x protonmail-bridge) + "ProtonMail Bridge" Exec exec protonmail-bridge &
+Test (x alpine) + "Alpine" Exec exec xterm -e alpine &
+Test (x mutt) + "Mutt" Exec exec xterm -e mutt &
+Test (x sylpheed) + "Sylpheed%iconz/sylpheed.png%" Exec exec sylpheed &
+Test (x claws-mail) + "Claws Mail%iconz/claws-mail.png%" Exec exec claws-mail &
+Test (x evolution) + "Evolution%iconz/evolution.png%" Exec exec evolution &
+
+AddToMenu InternetUsenetMenu
+Test (x slrn) + "slrn%iconz/slrn.png%" Exec exec xterm -e slrn &
+Test (x pan) + "Pan%iconz/pan.png%" Exec exec pan &
+
+AddToMenu InternetChatMenu
+Test (x barnowl) + "Barnowl" Exec exec xterm -e barnowl &
+Test (x irssi) + "Irssi" Exec exec xterm -e irssi &
+Test (x weechat) + "WeeChat" Exec exec xterm -e weechat &
+Test (x hexchat) + "HexChat%iconz/hexchat.png%" Exec exec hexchat &
+Test (x quassel) + "Quassel" Exec exec quassel &
+Test (x finch) + "Finch" Exec exec xterm -e finch &
+Test (x pidgin) + "Pidgin%iconz/pidgin.png%" Exec exec pidgin &
+Test (x gajim) + "Gajim%iconz/gajim.png%" Exec exec gajim &
+Test (x quaternion) + "Quaternion" Exec exec quaternion &
+Test (x riot) + "Riot" Exec exec riot &
+Test (x element-desktop) + "Element" Exec exec element-desktop &
+Test (x utox) + "uTox" Exec exec utox &
+Test (x signal-desktop) + "Signal" Exec exec signal-desktop &
+Test (x telegram-desktop) + "Telegram" Exec exec telegram-desktop &
+Test (x discord) + "Discord" Exec exec discord &
+Test (x mumble) + "Mumble%iconz/mumble.png%" Exec exec mumble &
+Test (x linphone) + "Linphone" Exec exec linphone &
+Test (x jami) + "Jami" Exec exec jami &
+Test (x obs) + "OBS Studio%iconz/obs-studio.png%" Exec exec obs &
+Test (x jitsi) + "Jitsi" Exec exec jitsi &
+
+AddToMenu InternetFilesharingMenu
+Test (x uget-gtk) + "uGet%iconz/uget.png%" Exec exec uget-gtk &
+Test (x gftp) + "gFTP" Exec exec gftp &
+Test (x filezilla) + "FileZilla%iconz/filezilla.png%" Exec exec filezilla &
+Test (x gtk-gnutella) + "GTK-Gnutella" Exec exec gtk-gnutella &
+Test (x deluge) + "Deluge%iconz/deluge.png%" Exec exec deluge &
+Test (x eiskaltdcpp-qt) + "EiskaltDC++" Exec exec eiskaltdcpp-qt &
+Test (x retroshare) + "RetroShare" Exec exec retroshare &
+
+AddToMenu InternetMenu
++ "Combo" Popup InternetComboMenu
++ "Browsers" Popup InternetBrowsersMenu
++ "Feeds" Popup InternetFeedsMenu
++ "Mail" Popup InternetMailMenu
++ "Usenet" Popup InternetUsenetMenu
++ "Chat" Popup InternetChatMenu
++ "Filesharing" Popup InternetFilesharingMenu
+
+AddToMenu RadioMenu
+Test (x fldigi) + "Fldigi" Exec exec fldigi &
+Test (x flrig) + "Flrig" Exec exec flrig &
+Test (x flwrap) + "Flwrap" Exec exec flwrap &
+Test (x flmsg) + "Flmsg" Exec exec flmsg &
+Test (x qsstv) + "Qsstv" Exec exec qsstv &
+
+AddToMenu VirtualMachineMenu
+Test (x stella) + "Stella%iconz/stella.png%" Exec exec stella &
+Test (x vice) + "VICE" Exec exec vice &
+Test (x dosbox) + "DOSBox%iconz/dosbox.png%" Exec exec dosbox &
+Test (x dosbox-x) + "DOSBox-X%iconz/dosbox-x.png%" Exec exec dosbox-x &
+Test (x minivmac) + "Mini vMac" Exec exec minivmac &
+Test (x herculesstudio) + "Hercules Studio" Exec exec herculesstudio &
+Test (x virt-manager) + "Virtual Machine Manager%iconz/virt-manager.png%" Exec exec virt-manager &
+Test (x virtualbox) + "VirtualBox" Exec exec virtualbox &
+Test (x vmware) + "VMware" Exec exec vmware &
+
+AddToMenu AcePenguinMenu
++ "Solitaire" Exec exec ace-solitaire &
++ "Spider Solitaire" Exec exec ace-spider &
++ "Freecell" Exec exec ace-freecell &
++ "Minesweeper" Exec exec ace-minesweeper &
++ "Taipei" Exec exec ace-taipei &
+
+AddToMenu DoomMenu
+Test (x chocolate-doom) + "Chocolate Doom (FreeDM)%iconz/freedm.png%" Exec exec chocolate-doom &
+Test (x chocolate-doom) + "Chocolate Doom (Ultimate Doom)%iconz/chocolate-doom.png%" Exec exec chocolate-doom -iwad ~/Games/wads/DOOM.WAD &
+Test (x chocolate-doom) + "Chocolate Doom (Doom 2)%iconz/chocolate-doom.png%" Exec exec chocolate-doom -iwad ~/Games/wads/DOOM2.WAD &
+Test (x chocolate-doom-setup) + "Chocolate Doom Setup%iconz/chocolate-setup.png%" Exec exec chocolate-doom-setup &
+Test (x crispy-doom) + "Crispy Doom (FreeDM)%iconz/freedm.png%" Exec exec crispy-doom &
+Test (x crispy-doom) + "Crispy Doom (Ultimate Doom)" Exec exec crispy-doom -iwad ~/Games/wads/DOOM.WAD &
+Test (x crispy-doom) + "Crispy Doom (Doom 2)" Exec exec crispy-doom -iwad ~/Games/wads/DOOM.WAD &
+Test (x crispy-setup) + "Crispy Doom Setup" Exec exec crispy-setup &
+Test (x zdoom) + "ZDoom%iconz/zdoom.png%" Exec exec zdoom &
+Test (x gzdoom) + "GZDoom" Exec exec gzdoom &
+Test (x zandronum) + "Zandronum" Exec exec zandronum &
+Test (x doomseeker) + "Doomseeker" Exec exec doomseeker &
+
+AddToMenu SteamMenu
++ "Half-Life: Source" Exec exec wine ~/Games/Steam/'Half-Life 2'/hl2.exe -novid -windowed -game hl1 &
++ "Half-Life 2" Exec exec wine ~/Games/Steam/'Half-Life 2'/hl2.exe -novid -windowed &
++ "Half-Life 2: Lost Coast" Exec exec wine ~/Games/Steam/'Half-Life 2'/hl2.exe -novid -windowed -game lostcoast &
++ "Half-Life 2: Episode One" Exec exec wine ~/Games/Steam/'Half-Life 2'/hl2.exe -novid -windowed -game episodic &
++ "Half-Life 2: Episode Two" Exec exec wine ~/Games/Steam/'Half-Life 2'/hl2.exe -novid -windowed -game ep2 &
+
+AddToMenu GamesMenu
++ "Tools" PopUp GamesToolsMenu
+Test (x steam) + "Steam" Exec exec steam &
++ "" Nop
+Test (x ace-solitaire) + "Ace of Penguins%iconz/ace.png%" Popup AcePenguinMenu
++ "Doom" Popup DoomMenu
++ "Steam" Popup SteamMenu
+Test (x tetris-bsd) + "Tetris" Exec exec xterm -e tetris-bsd &
+Test (x xboard) + "XBoard%iconz/xboard.png%" Exec exec xboard &
+Test (x xmahjongg) + "Xmahjongg%iconz/xmahjongg.png%" Exec exec xmahjongg &
+Test (x xtron) + "Xtron" Exec exec xtron &
+Test (x micropolis) + "Micropolis%iconz/micropolis.png%" Exec exec micropolis &
+Test (x scummvm) + "ScummVM%iconz/scummvm.png%" Exec exec scummvm &
+Test (x nquake) + "Nquake" Exec exec nquake &
+Test (x openarena) + "OpenArena" Exec exec openarena &
+Test (x minetest) + "Minetest%iconz/minetest.png%" Exec exec minetest &
+
+AddToMenu GamesToolsMenu
+Test (x slade) + "SLADE" Exec exec slade &
+
+AddToMenu WindowsAppsMenu
++ "Adobe Flash Player%iconz/adobe_flash_player.png%" Exec exec wine $HOME/.wine/drive_c/flashplayer_32_sa_debug.exe &
++ "MMSSTV%iconz/mmsstv.png%" Exec exec wine $HOME/.wine/drive_c/Ham/MMSSTV/MMSSTV.EXE &
++ "LTSpice%iconz/ltspice.png%" Exec exec wine $HOME/.wine/drive_c/'Program Files'/LTC/LTspiceXVII/XVIIx64.exe &
+
+AddToMenu X11Menu
++ "Refresh%iconz/refresh.png%" Refresh
++ "Restart%iconz/restart.png%" Restart
++ "Quit%iconz/exit.png%" Module FvwmScript FvwmScript-ConfirmQuit
+
+AddToMenu SystemMenu
++ "Reboot%iconz/actions/restart.png%" exec systemctl reboot
++ "Shutdown%iconz/actions/quit.png%" exec systemctl poweroff
+
+
+PipeRead "fvwm-menu-desktop -e"
+
+# Root Menu
+#
+# The root menu will PopUp with a click in the root
+# window or using alt-f1 (or menu).
+DestroyMenu MenuFvwmRoot
+AddToMenu   MenuFvwmRoot "Root Menu" Title
++ "XTerm%iconz/xterm.png%" Exec exec $[infostore.terminal]
++ "" Nop
+#+ "XDG Menu" Popup XDGMenu
++ "Misc." Popup MiscMenu
++ "Files%iconz/files.png%" Popup FilesMenu
++ "Utilities%iconz/utilities.png%" Popup UtilitiesMenu
++ "Accessibility%iconz/preferences-desktop-accessibility.png%" Popup AccessibilityMenu
++ "Development%iconz/editors.png%" Popup DevelopmentMenu
++ "Engineering%iconz/engineering.png%" Popup EngineeringMenu
++ "Institutional" Popup InstitutionalMenu
++ "Science%iconz/science.png%" Popup ScienceMenu
++ "Documents%iconz/documents.png%" Popup DocumentsMenu
++ "Creation%iconz/creation.png%" Popup MediaEditMenu
++ "Media%iconz/multimedia.png%" Popup MediaMenu
++ "Network%iconz/network.png%" Popup NetworkMenu
++ "Internet%iconz/www.png%" Popup InternetMenu
++ "Radio%iconz/radio.png%" Popup RadioMenu
++ "VM" Popup VirtualMachineMenu
++ "Games%iconz/games.png%" Popup GamesMenu
++ "Windows%iconz/win95.png%" Popup WindowsAppsMenu
++ "" Nop
++ "X11 Session%iconz/x11.png%" Popup X11Menu
++ "System%iconz/system.png%" Popup SystemMenu
+
+
+# Programs Menu
+#
+# This test for some common programs and adds them to the menu.
+# When adding programs you don't need to use the Test (x foo)
+# lines as this is only to help make this menu portable.
+DestroyMenu MenuPrograms
+AddToMenu   MenuPrograms "Programs" Title
+Test (x chromium) + "Chromium" Exec exec chromium
+Test (x firefox) + "Firefox" Exec exec firefox
+Test (x google-chrome) + "Google-Chrome" Exec exec google-chrome
+Test (x gvim) + "gVim" Exec exec gvim
+Test (x xemacs) + "XEmacs" Exec exec xemacs
+Test (x gimp) + "Gimp" Exec exec gimp
+Test (x vlc) + "VLC" Exec exec vlc
+
+# Background Menu
+#
+# Backgrounds are located in ~/.fvwm/images/background/
+# Menu icons are located in ~/.fvwm/images/bgicons/
+DestroyMenu BGMenu
+AddToMenu   BGMenu "Wallpapers" Title
++ "Black" Exec xsetroot -solid black &
++ "White" Exec xsetroot -solid white &
++ "Pink" Exec xsetroot -solid pink &
++ "Violet" Exec xsetroot -solid violet &
++ "Magenta" Exec xsetroot -solid magenta &
++ "Cyan" Exec xsetroot -solid cyan &
++ "Aqua" Exec xsetroot -solid aqua &
++ "Teal" Exec xsetroot -solid teal &
++ "Maroon" Exec xsetroot -solid maroon &
++ "Bisque" Exec xsetroot -solid bisque &
++ "Brown" Exec xsetroot -solid brown &
++ "Orange" Exec xsetroot -solid orange &
++ "Red" Exec xsetroot -solid red &
++ "Green" Exec xsetroot -solid green &
++ "Yellow" Exec xsetroot -solid yellow &
++ "Gold1" Exec xsetroot -solid gold1 &
++ "Blue" Exec xsetroot -solid blue &
++ "Navy" Exec xsetroot -solid navy &
++ "Steel Blue" Exec xsetroot -solid SteelBlue &
++ "Silver" Exec xsetroot -solid silver &
++ "Grey" Exec xsetroot -grey &
++ "Floral" SetBG bg1.png
++ "Circles" SetBG bg2.png
++ "Space" SetBG bg3.png
+
+
+# Window Operations Menus
+DestroyMenu MenuWindowOps
+AddToMenu   MenuWindowOps
++ "Move"                Move
++ "Resize"              Resize
++ "(De)Iconify"         Iconify
++ "(Un)Maximize"        Maximize
++ "(Un)Shade"           WindowShade
++ "(Un)Sticky"		Stick
++ "(No)TitleBar"	Pick (CirculateHit) ToggleTitle
++ "Send To"             Popup MenuSendTo
++ "" Nop
++ "Close"               Close
++ "Destroy"             Destroy
++ "" Nop
++ "Raise"		Raise
++ "Lower"		Lower
++ "" Nop
++ "StaysOnTop"          Pick (CirculateHit) Layer 0 6
++ "StaysPut"            Pick (CirculateHit) Layer 0 4
++ "StaysOnBottom"       Pick (CirculateHit) Layer 0 2
++ "" Nop
++ "Identify"            Module FvwmIdent
+
+DestroyMenu MenuIconOps
+AddToMenu   MenuIconOps
++ "(De)Iconify"         Iconify
++ "(Un)Maximize"        Maximize
++ "(Un)Shade"           WindowShade
++ "(Un)Sticky"		Stick
++ "(No)TitleBar"	Pick (CirculateHit) ToggleTitle
++ "Send To"             Popup MenuSendTo
++ "" Nop
++ "Close"               Close
++ "Destroy"             Destroy
++ "" Nop
++ "Raise"		Raise
++ "Lower"		Lower
++ "" Nop
++ "StaysOnTop"          Pick (CirculateHit) Layer 0 6
++ "StaysPut"            Pick (CirculateHit) Layer 0 4
++ "StaysOnBottom"       Pick (CirculateHit) Layer 0 2
++ "" Nop
++ "Identify"            Module FvwmIdent
+
+DestroyMenu MenuSendTo
+AddToMenu MenuSendTo
++ "Current" MoveToCurrent
++ "Page" PopUp MenuSendToPage
++ "Desk" PopUp MenuSendToDesk
+
+DestroyMenu MenuSendToDesk
+AddToMenu   MenuSendToDesk
++ "Desk 0"	MoveToDesk 0 0
++ "Desk 1"	MoveToDesk 0 1
++ "Desk 2"	MoveToDesk 0 2
++ "Desk 3"	MoveToDesk 0 3
+
+DestroyMenu MenuSendToPage
+AddToMenu   MenuSendToPage
++ "Page (0,0)"	MoveToPage 0 0
++ "Page (0,1)"	MoveToPage 0 1
++ "Page (0,2)"	MoveToPage 0 2
++ "Page (0,3)"	MoveToPage 0 3
++ "Page (0,4)"	MoveToPage 0 4
++ "" Nop
++ "Page (1,0)"	MoveToPage 1 0
++ "Page (1,1)"	MoveToPage 1 1
++ "Page (1,2)"	MoveToPage 1 2
++ "Page (1,3)"	MoveToPage 1 3
++ "Page (1,4)"	MoveToPage 1 4
++ "" Nop
++ "Page (2,0)"	MoveToPage 2 0
++ "Page (2,1)"	MoveToPage 2 1
++ "Page (2,2)"	MoveToPage 2 2
++ "Page (2,3)"	MoveToPage 2 3
++ "Page (2,4)"	MoveToPage 2 4
++ "" Nop
++ "Page (3,0)"	MoveToPage 3 0
++ "Page (3,1)"	MoveToPage 3 1
++ "Page (3,2)"	MoveToPage 3 2
++ "Page (3,3)"	MoveToPage 3 3
++ "Page (3,4)"	MoveToPage 3 4
+
+# Fvwm Man Pages (Help) Menu
+DestroyMenu MenuFvwmManPages
+AddToMenu   MenuFvwmManPages "Help" Title
++ "fvwm"                ViewManPage fvwm
++ "FvwmAnimate"         ViewManPage FvwmAnimate
++ "FvwmAuto"            ViewManPage FvwmAuto
++ "FvwmBacker"          ViewManPage FvwmBacker
++ "FvwmBanner"          ViewManPage FvwmBanner
++ "FvwmButtons"         ViewManPage FvwmButtons
++ "FvwmCommand"         ViewManPage FvwmCommand
++ "FvwmConsole"         ViewManPage FvwmConsole
++ "FvwmEvent"           ViewManPage FvwmEvent
++ "FvwmForm"            ViewManPage FvwmForm
++ "FvwmIconMan"         ViewManPage FvwmIconMan
++ "FvwmIdent"           ViewManPage FvwmIdent
++ "FvwmPager"           ViewManPage FvwmPager
++ "FvwmPerl"            ViewManPage FvwmPerl
++ "FvwmProxy"           ViewManPage FvwmProxy
++ "FvwmRearrange"       ViewManPage FvwmRearrange
++ "FvwmScript"          ViewManPage FvwmScript
++ "" Nop
++ "fvwm-root"	        ViewManPage fvwm-root
++ "fvwm-menu-desktop"   ViewManPage fvwm-menu-desktop
++ "fvwm-menu-directory" ViewManPage fvwm-menu-directory
++ "fvwm-menu-headlines" ViewManPage fvwm-menu-headlines
++ "fvwm-menu-xlock"     ViewManPage fvwm-menu-xlock
++ "fvwm-config"         ViewManPage fvwm-config
+
+#######
+# 5: Mouse and Key bindings
+#
+# Contexts:
+#     R = Root Window                 rrrrrrrrrrrrrrrrrrrrrr
+#     W = Application Window          rIrrrr<---------^rrrrr
+#     F = Frame Corners               rrrrrr[13TTTT642]rrrrr
+#     S = Frame Sides                 rIrrrr[wwwwwwwww]rrrrr
+#     T = Title Bar                   rrrrrr[wwwwwwwww]rrrrr
+#     I = Icon                        rIrrrrv_________>rrrrr
+#                                     rrrrrrrrrrrrrrrrrrrrrr
+#
+#     Numbers are buttons: [1 3 5 7 9  TTTTT  0 8 6 4 2]
+#
+# Modifiers: (A)ny, (C)ontrol, (S)hift, (M)eta, (N)othing
+#
+# Format: Key <X>  <Context> <Modifier> <Action>
+#         Mouse <X> <Context> <Modifier> <Action>
+####################
+
+# Alt-F1 or Menu to load the root menu and Alt-Tab for a WindowList.
+# Ctrl-F1/F2/F3/F4 will switch between the Virtual Desktops.
+# Super_R (windows key) will launch a terminal.
+#
+# Silent supresses any errors (such as keyboards with no Menu key).
+Silent Key F1 A M Menu MenuFvwmRoot
+Silent Key Menu A A Menu MenuFvwmRoot
+Silent Key Tab A M WindowList Root c c NoDeskSort, SelectOnRelease Meta_L
+Silent Key F1 A C GotoDesk 0 0
+Silent Key F2 A C GotoDesk 0 1
+Silent Key F3 A C GotoDesk 0 2
+Silent Key F4 A C GotoDesk 0 3
+Silent Key Super_R A A Exec exec $[infostore.terminal]
+
+Key XF86MonBrightnessDown A N Exec exec brightnessctl s 5-
+Key XF86MonBrightnessUp A N Exec exec brightnessctl s 5+
+Key XF86AudioMute A N Exec exec amixer set 'Master' toggle
+Key XF86AudioLowerVolume A N Exec exec amixer set 'Master' 1%- unmute
+Key XF86AudioRaiseVolume A N Exec exec amixer set 'Master' 1%+ unmute
+Key XF86AudioPrev A N Exec exec playerctl previous
+Key XF86AudioNext A N Exec exec playerctl next
+Key XF86AudioPlay A N Exec exec playerctl play-pause
+Key XF86AudioPause A N Exec exec playerctl pause
+Key XF86AudioStop A N Exec exec playerctl stop
+
+# Window Buttons: [1 3 5 7 9  TTTTT  0 8 6 4 2]
+#   1 - Open the WindowOps menu.
+#   2 - Close on single click, Destory on double click.
+#   4 - Maximize (right/middle button will only maximize vertical/horizontal)
+#   6 - Iconify (minimize)
+Mouse 1 1 A Menu MenuWindowOps Delete
+Mouse 1 2 A Close
+Mouse 1 4 A Maximize 100 100
+Mouse 2 4 A Maximize 0 100
+Mouse 3 4 A Maximize 100 0
+Mouse 1 6 A Iconify
+
+#   TitleBar: Click to Raise, Move, Double Click to Maximize
+#             Mouse Wheel Up/Down to WindowShade On/Off
+#   Borders: Click to raise, Move to Resize
+#   Root Window: Left Click - Main Menu
+#                Right Click - WindowOps Menu
+#                Middle Click - Window List Menu
+#   Right click TitleBar/Borders for WindowOps Menu
+Mouse 1	T    A RaiseMoveX Move Maximize
+Mouse 1	FS   A RaiseMove Resize
+Mouse 4	T    A WindowShade True
+Mouse 5	T    A WindowShade False
+Mouse 1	R    A Menu MenuFvwmRoot
+Mouse 2	R    A WindowList
+Mouse 3	R    A Menu MenuWindowOps
+Mouse 1	I    A RaiseMoveX Move "Iconify off"
+Mouse 3	T    A RaiseLower
+Mouse 3 I    A Menu MenuIconOps
+
+#######
+# 6: Window Decor
+#
+# Buttons Locations: [1 3 5 7 9  TTTTT  0 8 6 4 2]
+#
+#   1 - WindowOps Menu
+#   6 - Close
+#   4 - Minimize
+#   2 - Maximize
+###########
+#ButtonStyle 1 Vector 5 0+4px50+1p@0 100-5px50+1p@0 100-5px50-2p@0 0+4px50-2p@1 0+4px50+1p@1
+ButtonStyle 1 MiniIcon
+ButtonStyle 2 Vector 17 20x20@1 30x20@1 50x40@1 70x20@1 80x20@1 80x30@0 60x50@0 80x70@1 80x80@0 70x80@0 50x60@0 30x80@0 20x80@0 20x70@0 40x50@1 20x30@0 20x20@1
+#ButtonStyle 6 Vector 5 50-2px50+1p@0 50+1px50+1p@0 50+1px50-2p@0 50-2px50-2p@1 50-2px50+1p@1
+ButtonStyle 6 Vector 5 25x60@1 25x75@1 75x75@0 75x60@0 25x60@1
+ButtonStyle 4 Vector 5 0+4px100-5p@0 100-5px100-5p@0 100-5px0+4p@0 0+4px0+4p@1 0+4px100-5p@1
+
+ButtonStyle 1 - Clear MWMDecorMenu
+ButtonStyle 2 - Clear
+ButtonStyle 4 - Clear MWMDecorMax
+ButtonStyle 6 - Clear MWMDecorMin
+
+############
+# 7: Modules
+#############
+
+# FvwmIdent
+#
+# FvwmIdent is a module that can be used to get the various info about
+# a window. One use is getting the class/resource/name of a window.
+DestroyModuleConfig FvwmIdent:*
+*FvwmIdent: Colorset 10
+*FvwmIdent: Font "xft:Sans:size=10:antialias=True"
+
+# FvwmBanner
+#
+# This displays the Fvwm Logo for 5 seconds. This is displayed
+# when fvwm starts.
+DestroyModuleConfig FvwmBanner:*
+*FvwmBanner: NoDecor
+*FvwmBanner: Pixmap $[HOME]/.fvwm/images/aperture-logo.png
+*FvwmBanner: Timeout 5
+
+# FvwmScript
+#
+# FvwmScript is a module that allows one to write custom desktop
+# widgets and various other tools. This config uses two FvwmScripts.
+#   - DateTime - uses the output of "date" to display the date/time
+#     on the RightPanel.
+#   - Quit - This is a popup that asks for quit confirmation before
+#     quitting fvwm.
+DestroyModuleConfig FvwmScript:*
+*FvwmScript: DefaultColorset 10
+
+# EwmhBaseStruts [left] [right] [top] [bottom]
+# Reserves space along the edge(s) of the Screen that will not
+# be covered when maximizing or placing windows.
+EwmhBaseStruts 0 128 0 0
+
+# FvwmButtons - RightPanel
+#
+# FvwmButtons is a powerful module that can be used to build custom
+# panels and docks. This config uses FvwmButtons to build the RightPanel.
+# The panel contains buttons to switch desks, FvwmPager, a system tray,
+# FvwmIconMan (list of running windows), and a clock.
+#
+# Note - To use the system tray you must have "stalonetray" installed.
+DestroyModuleConfig RightPanel:*
+*RightPanel: Geometry 128x$[vp.height]-0-0
+*RightPanel: Colorset 10
+*RightPanel: Rows $[vp.height]
+*RightPanel: Columns 128
+*RightPanel: Frame 0
+*RightPanel: Font "xft:Sans:Bold:size=10:antialias=True"
+# *RightPanel: (128x48, Swallow DateTime 'Module FvwmScript FvwmScript-DateTime',\
+#     Frame 0)
+Test (x xload) *Rightpanel: (128x32, Swallow(NoClose,UseOld) \
+	  xload 'Exec exec xload -bg black -fg gold1 -hl lime -nolabel', Frame 0)
+Test (x xosview) *RightPanel: (128x128, Swallow(NoClose, UseOld) \
+    xosview 'Exec exec xosview', Frame 0)
+Test (x xeyes) *RightPanel: (128x55, Swallow(NoClose, UseOld) \
+    xeyes 'Exec exec xeyes', Frame 0)
+*RightPanel: (32x18, Id desk0, Title "0", Action (Mouse 1) GotoDesk 0 0, Colorset 11, ActiveColorset 12, Frame 0)
+*RightPanel: (32x18, Id desk1, Title "1", Action (Mouse 1) GotoDesk 0 1, ActiveColorset 12, Frame 0)
+*RightPanel: (32x18, Id desk2, Title "2", Action (Mouse 1) GotoDesk 0 2, ActiveColorset 12, Frame 0)
+*RightPanel: (32x18, Id desk3, Title "3", Action (Mouse 1) GotoDesk 0 3, ActiveColorset 12, Frame 0)
+*RightPanel: (128x128, Swallow FvwmPager 'Module FvwmPager *', Frame 0)
+*RightPanel: (64x64, Frame 0)
+Test (x wmsystemtray) *Rightpanel: (64x64, Swallow(NoClose,UseOld) \
+    wmsystemtray 'Exec exec wmsystemtray --non-wmaker -s --bgcolor black --fgcolor white', Frame 0)
+# INCREDIBLY picky about height. If not a pixel-perfect number, will screw shit up.
+Test (x stalonetray) PipeRead 'echo "*RightPanel: (128x$(($[vp.height]-489)), \
+     Top, Swallow FvwmIconMan \'Module FvwmIconMan\', Frame 0)"'
+Test (x wmweather+) *Rightpanel: (64x64, Swallow(NoClose,UseOld) \
+    wmweather+ 'Exec exec wmweather+', Frame 0)
+Test (x asclock) *Rightpanel: (64x64, Swallow(NoClose,UseOld) \
+    asclock 'Exec exec asclock -12 -noblink -theme shaped', Frame 0)
+
+
+
+
+
+
+# DestroyModuleConfig FvwmTaskBar: *
+# *FvwmTaskBar: Geometry 1920x72+0-0
+# *FvwmTaskBar: Colorset 15
+# *FvwmTaskBar: Frame 0
+# *FvwmTaskBar: Font "xft:Serif:size=10:bold:antialias=True"
+# *FvwmTaskBar: Rows 1
+# *FvwmTaskBar: Columns 1920
+
+# *FvwmTaskBar: (55x1, Title "Fvwm", ActiveColorset 16, \
+#                Action(Mouse 1) Menu MenuFvwmRoot Root 0 o100-64p, Frame 2, \
+# 					Action(Mouse 2) Menu MenuFvwmRoot Root 0 o100-64p, Frame 2, \
+# 					Action(Mouse 3) Menu MenuWindowOps Root 0 o100-64p, Frame 2))
+# # Swallow FvwmIconMan TaskBarIcons
+# *FvwmTaskBar: (1000x1, Left, Swallow TaskBarIcons 'Module FvwmIconMan \
+#                TaskBarIcons')
+# *FvwmTaskBar: (120x1, Left, Swallow(NoClose,UseOld) stalonetray 'Exec exec stalonetray --config "$[HOME]/.fvwm/.stalonetrayrc" --kludges=force_icons_size')
+
+# # FvwmTaskBar styles
+# Style FvwmTaskBar !Borders, !Title, WindowListSkip, \
+#                   StaysOnTop, Sticky
+
+# # Set EwmhBaseStruts left right top bottom
+# EwmhBaseStruts 0 128 0 72
+
+# # Colorsets
+# Colorset 15 fg #ffffff, bg #003c3c, hi #005c5c, sh #001c1c
+# Colorset 16 fg #2d2d2d, bg #ffffff, hi #005c5c, sh #001c1c
+
+
+# DestroyModuleConfig TaskBarIcons: *
+# *TaskBarIcons: IconName TaskBarIcons
+# *TaskBarIcons: UseWinList true
+# *TaskBarIcons: Resolution global
+# *TaskBarIcons: Tips needed
+# *TaskBarIcons: Font "xft:Serif:size=8:antialias=True"
+
+# # Manager Size
+# *TaskBarIcons: ButtonGeometry 120x24
+# *TaskBarIcons: MaxButtonWidth 120
+# *TaskBarIcons: ManagerGeometry 1x1
+
+# # Button Styles
+# *TaskBarIcons: DrawIcons always
+# *TaskBarIcons: ReliefThickness 2
+# *TaskBarIcons: Format "%t"
+# *TaskBarIcons: IconButton down
+# *TaskBarIcons: IconAndSelectButton down
+# *TaskBarIcons: SelectButton up
+# *TaskBarIcons: Background #003c3c
+# *TaskBarIcons: Foreground #ffffff
+# *TaskBarIcons: PlainColorset 15
+# *TaskBarIcons: FocusColorset 16
+# *TaskBarIcons: FocusAndSelectColorset 16
+# *TaskBarIcons: SelectColorset 16
+# *TaskBarIcons: IconAndSelectColorset 16
+
+# # Button Actions
+# *TaskBarIcons: Action Mouse 1 A sendcommand IconManClick
+# *TaskBarIcons: Action Mouse 2 A sendcommand Nop
+# *TaskBarIcons: Action Mouse 3 A sendcommand "Menu MenuIconOps Mouse 0 o100"
+
+
+
+
+
+# FvwmPager
+#
+# This module displays the location of the windows on the various Pages
+# and Desks. This is setup to show only the Pages on the current Desk.
+DestroyModuleConfig FvwmPager:*
+*FvwmPagerBack SlateBlue
+*FvwmPagerFore black
+*FvwmPagerHilight Orchid
+*FvwmPager: DeskColor 0 SlateBlue
+*FvwmPager: DeskColor 1 Maroon
+*FvwmPager: DeskColor 2 Teal
+*FvwmPager: DeskColor 3 Magenta
+*FvwmPager: BalloonColorset * 10
+*FvwmPager: WindowColorsets 10 11
+*FvwmPager: Font None
+*FvwmPager: Balloons All
+*FvwmPager: BalloonFont "xft:Sans:Bold:size=8:antialias=True"
+*FvwmPager: BallonYOffset +2
+*FvwmPager: Window3dBorders
+*FvwmPager: MiniIcons
+
+# FvwmIconMan
+#
+# FvwmIconMan is a powerful tool to list and manage windows. This
+# is used as the window list in the panel or taskbar.
+DestroyModuleConfig FvwmIconMan:*
+*FvwmIconMan: UseWinList true
+*FvwmIconMan: ButtonGeometry 128x22
+*FvwmIconMan: ManagerGeometry 1x1
+*FvwmIconMan: Background #003c3c
+*FvwmIconMan: Foreground #ffffff
+*FvwmIconMan: FocusColorset 11
+*FvwmIconMan: IconColorset 14
+*FvwmIconMan: FocusAndSelectColorset 12
+*FvwmIconMan: SelectColorset 12
+*FvwmIconMan: IconAndSelectColorset 12
+*FvwmIconMan: DrawIcons always
+*FvwmIconMan: ReliefThickness 0
+*FvwmIconMan: Format "%t"
+*FvwmIconMan: Font "xft:Serif:Bold:size=8:antialias=True"
+*FvwmIconMan: Action Mouse 0 A ret
+*FvwmIconMan: Action Mouse 1 A sendcommand IconManClick
+*FvwmIconMan: Action Mouse 3 A sendcommand "Menu MenuIconOps"
+*FvwmIconMan: Resolution global
+*FvwmIconMan: Tips needed
+*FvwmIconMan: Sort id
+
+# FvwmEvent
+#
+# FvwmEvent is a module that can run an action or function
+# on specific events. This instance changes which desk number
+# is highlighted when the desk is changed.
+DestroyModuleConfig EventNewDesk:*
+*EventNewDesk: PassID
+*EventNewDesk: new_desk ChangeDesk
+
+# FvwmForm
+#
+# FvwmForm is a module that can be used to build a GUI
+# form. Used with fvwm-menu-desktop-config.fpl.
+# This sets the default colorsets.
+*FvwmFormDefault: Colorset 10
+*FvwmFormDefault: ItemColorset 13
+
+# Have to put this down here. See above for description.
+Style * !Icon
