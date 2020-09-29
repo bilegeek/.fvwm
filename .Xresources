@@ -1,0 +1,31 @@
+xterm*faceName:				Less Perfect DOS VGA:size=12:antialias=true
+xterm*allowBoldFonts: 		false
+xterm*background:				black
+xterm*foreground:				white
+xterm*selectToClipboard:   true
+xterm*zIconBeep:			   true
+xterm*locale:	      		true
+xterm*utf8: 	      		true
+xterm*utf8Title:      		true
+xterm*saveLines:				16384
+xterm*loginShell:				true
+XTerm*on2Clicks:				word
+XTerm*on3Clicks:				line
+
+xosview*background:			#003c3c
+xosview*labels:				true
+xosview*usedlabels:			true
+xosview*captions:				false
+xosview*load:					false
+xosview*cpu:					true
+xosview*gfx: 					false
+xosview*mem: 					true
+xosview*swap: 					true
+xosview*disk: 					true
+xosview*page: 					false
+xosview*wlink: 				false
+xosview*wireless: 			true
+xosview*net: 					true
+xosview*battery: 				true
+
+xedit*enableBackups: 		off
